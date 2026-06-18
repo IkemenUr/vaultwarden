@@ -1,0 +1,86 @@
+name: Check templates and Deploy to AWS
+
+permissions:
+  contents: read
+  id-token: write # Autorise la génération du token temporaire OIDC pour AWS
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  docker-templates:
+    name: Validate and Scan Docker Templates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run make to rebuild templates
+        working-directory: vaultwarden/docker
+        run: make
+
+      - name: Check for unstaged changes
+        working-directory: vaultwarden/docker
+        run: git diff --exit-code
+
+      - name: Run Trivy vulnerability scanner (IaC / Config mode)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: config
+          scan-ref: vaultwarden/docker/
+          exit-code: "0" 
+          severity: CRITICAL,HIGH
+
+      - name: Run Trivy Container Image Vulnerability Scanner (SCA mode)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: vaultwarden/server:latest
+          scan-type: image
+          format: table
+          exit-code: "0" 
+          severity: CRITICAL,HIGH
+
+
+          #Ça cest la partie pour deploy sur AWS qu'il manque
+
+  deploy-to-aws:
+    name: Secure CD Deployment via AWS SSM
+    needs: docker-templates # S'exécute uniquement si les scans Trivy sont au vert
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authentification AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Execute Deploy via AWS Systems Manager (SSM)
+        uses: peterkimzz/aws-ssm-command@master
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          instance-ids: ${{ vars.AWS_EC2_INSTANCE_ID }}
+          comment: "Push-Deployment automatisé depuis VS Code"
+          working-directory: "vaultwarden/docker" # ⚠️ AJUSTE CE CHEMIN avec l'emplacement de l'app sur ton EC2
+          command: |
+            git pull origin main
+            sudo docker compose down
+            sudo docker compose up -d --build
