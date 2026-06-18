@@ -55,7 +55,7 @@ jobs:
           severity: CRITICAL,HIGH
 
 
-          #Ça cest la partie pour deploy sur AWS qu'il manque
+          #AWS deployment
 
   deploy-to-aws:
     name: Secure CD Deployment via AWS SSM
@@ -67,7 +67,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Authentification AWS via OIDC
+      - name: AWS authentication via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
@@ -79,7 +79,7 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
           instance-ids: ${{ vars.AWS_EC2_INSTANCE_ID }}
           comment: "Push-Deployment automatisé depuis VS Code"
-          working-directory: "vaultwarden/docker" # ⚠️ AJUSTE CE CHEMIN avec l'emplacement de l'app sur ton EC2
+          working-directory: "vaultwarden/docker" 
           command: |
             git pull origin main
             sudo docker compose down
