@@ -30,19 +30,19 @@ jobs:
           persist-credentials: false
 
       - name: Run make to rebuild templates
-        working-directory: vaultwarden/docker
+        working-directory: docker
         run: make
 
       - name: Check for unstaged changes
-        working-directory: vaultwarden/docker
+        working-directory: docker
         run: git diff --exit-code
 
       - name: Run Trivy vulnerability scanner (IaC / Config mode)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: config
-          scan-ref: vaultwarden/docker/
-          exit-code: "0" 
+          scan-ref: docker/
+          exit-code: "1" 
           severity: CRITICAL,HIGH
 
       - name: Run Trivy Container Image Vulnerability Scanner (SCA mode)
@@ -79,8 +79,8 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
           instance-ids: ${{ vars.AWS_EC2_INSTANCE_ID }}
           comment: "Push-Deployment automatisé depuis VS Code"
-          working-directory: "/usr/bin/vaultwarden-infra/vaultwarden/playwright/docker-compose.yml" 
+          working-directory: "/usr/bin/vaultwarden-infra" 
           command: |
             git pull origin main
-            sudo docker compose down
-            sudo docker compose up -d --build
+            sudo docker-compose down
+            sudo docker-compose up -d --build
