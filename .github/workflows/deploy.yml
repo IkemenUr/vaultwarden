@@ -79,7 +79,7 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
           instance-ids: ${{ vars.AWS_EC2_INSTANCE_ID }}
           comment: "Push-Deployment automatisé depuis VS Code"
-          working-directory: "vaultwarden/docker" 
+          working-directory: "/usr/bin/vaultwarden-infra/" 
           command: |
             git pull origin main
             sudo docker compose down
