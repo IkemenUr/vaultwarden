@@ -1,0 +1,14 @@
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: unless-stopped
+
+    ports:
+      - "3000:80"
+
+    environment:
+      DATABASE_URL: "postgresql://postgres:KNc08vCMPwSjZLNZ4rky@database-1.c9aysqmy84qe.eu-north-1.rds.amazonaws.com:5432/vaultwarden"
+
+    volumes:
+      - ./vw-data:/data
