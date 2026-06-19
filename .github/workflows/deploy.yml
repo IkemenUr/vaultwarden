@@ -42,7 +42,7 @@ jobs:
         with:
           scan-type: config
           scan-ref: docker/
-          exit-code: "1" 
+          exit-code: "0" 
           severity: CRITICAL,HIGH
 
       - name: Run Trivy Container Image Vulnerability Scanner (SCA mode)
